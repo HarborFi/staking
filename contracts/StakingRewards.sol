@@ -138,7 +138,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp + rewardsDuration;
-        emit RewardAdded(reward);
+        emit RewardAdded(reward, rewardRate);
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
@@ -171,7 +171,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== EVENTS ========== */
 
-    event RewardAdded(uint256 reward);
+    event RewardAdded(uint256 reward, uint256 rate);
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
