@@ -21,13 +21,20 @@ def sToken(MockToken, accounts):
     )
 
 @pytest.fixture(scope="module", autouse=True)
-def staking(StakingRewards, rToken, sToken, accounts):
-    rewardsDistribution = accounts[3]
+def contractOwner(accounts):
+    return accounts[0]
+
+@pytest.fixture(scope="module", autouse=True)
+def rewardsDistribution(accounts):
+    return accounts[3]
+
+@pytest.fixture(scope="module", autouse=True)
+def staking(StakingRewards, rToken, sToken, rewardsDistribution, contractOwner):
     return StakingRewards.deploy(
         rewardsDistribution,
         rToken,
         sToken,
-        {'from': accounts[0]}
+        {'from': contractOwner}
     )
 
 @pytest.fixture(autouse=True)

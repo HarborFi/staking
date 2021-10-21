@@ -4,18 +4,23 @@ import brownie
 from brownie import chain
 from brownie.test import given, strategy
 
-@given(reward=strategy('uint256', min_value=0, max_value=2**256-1))
-def test_valid_duration(accounts, staking, rToken, reward):
+@given(reward=strategy('uint256', min_value=1, max_value=2**256-1))
+def test_valid_duration(accounts, staking, rToken, rewardsDistribution, reward):
+    print('reward: ', reward)
     duration = chain.time()
     print('duration: ', duration)
+
     txn = staking.setRewardsDuration(duration, {'from': accounts[0]})
     assert txn.events['RewardsDurationUpdated']['newDuration'] == duration
 
-    rewardsDistribution = accounts[3]
-    # rough calculation of expected rate from notifyRewardAmount()
-    rate = reward / duration
+    # allocate rewards to staking contract
+    rToken.mint(reward, {'from': staking})
     # check reward token balance staking contract
     balance = rToken.balanceOf(staking)
+    assert balance == reward
+
+    # rough calculation of expected rate from notifyRewardAmount()
+    rate = reward / duration
     # check reward rate is within is not too high
     if rate > balance / duration:
         reward = balance / duration
@@ -44,9 +49,19 @@ def test_invalid_duration(accounts, staking):
     with brownie.reverts():
         staking.setRewardsDuration(duration, {'from': accounts[addr]})
 
-@given(amount=strategy('uint256', min_value=1, max_value=100))
-def test_valid_rewards(accounts, staking, sToken, amount):
+@given(amount=strategy('uint256', min_value=1, max_value=2**256-1))
+def test_valid_rewards(accounts, staking, sToken, rToken, rewardsDistribution, amount):
+    print('amount: ', amount)
+    reward = amount * 5
+    print('reward: ', reward)
     addr = 4
+
+    # allocate rewards to staking contract
+    rToken.mint(reward, {'from': staking})
+    # check reward token balance staking contract
+    balance = rToken.balanceOf(staking)
+    assert balance == reward
+
     # mint own mock tokens
     sToken.mint(amount, {'from': accounts[addr]})
     # approve transfer to staking contract
@@ -54,6 +69,10 @@ def test_valid_rewards(accounts, staking, sToken, amount):
     # stake tokens
     staking.stake(amount, {'from': accounts[addr]})
     assert staking.balanceOf(accounts[addr]) == amount
+
+    txn = staking.notifyRewardAmount(reward, {'from': rewardsDistribution})
+    assert txn.events['RewardAdded']['reward'] == reward
+
     # earn
     rewards_earned = staking.earned(accounts[addr])
     print('earned: ', rewards_earned)
@@ -67,15 +86,12 @@ def test_invalid_rewards(accounts, staking, reward):
         staking.notifyRewardAmount(reward)
 
 @given(reward=strategy('uint256', min_value=0, max_value=2**256-1))
-def test_reward_too_high(accounts, staking, rToken, reward):
+def test_reward_too_high(accounts, staking, rToken, rewardsDistribution, reward):
     duration = chain.time()
-    rewardsDistribution = accounts[3]
-    # rough calculation of expected rate from notifyRewardAmount()
-    rate = reward / duration
     # check reward token balance staking contract
     balance = rToken.balanceOf(staking)
     # make sure reward rate is too high
-    if rate > balance / duration:
+    if reward > balance / duration:
         with brownie.reverts():
             staking.notifyRewardAmount(reward, {'from': rewardsDistribution})
 
