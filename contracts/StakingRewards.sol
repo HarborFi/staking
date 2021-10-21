@@ -46,19 +46,19 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== VIEWS ========== */
 
-    function totalSupply() external view override returns (uint256) {
+    function totalSupply() external view returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) external view override returns (uint256) {
+    function balanceOf(address account) external view returns (uint256) {
         return _balances[account];
     }
 
-    function lastTimeRewardApplicable() public view override returns (uint256) {
+    function lastTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < periodFinish ? block.timestamp : periodFinish;
     }
 
-    function rewardPerToken() public view override returns (uint256) {
+    function rewardPerToken() public view returns (uint256) {
         if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
@@ -69,18 +69,18 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
             rewardPerTokenStored + (lastTimeRewardApplicable() - lastUpdateTime * rewardRate * 1e18 / _totalSupply);
     }
 
-    function earned(address account) public view override returns (uint256) {
+    function earned(address account) public view returns (uint256) {
         // return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
         return _balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account]) / 1e18 + rewards[account];
     }
 
-    function getRewardForDuration() external view override returns (uint256) {
+    function getRewardForDuration() external view returns (uint256) {
         return rewardRate * rewardsDuration;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function stake(uint256 amount) external override nonReentrant whenNotPaused updateReward(_msgSender()) {
+    function stake(uint256 amount) external nonReentrant whenNotPaused updateReward(_msgSender()) {
         require(amount > 0, "Cannot stake 0");
         _totalSupply = _totalSupply + amount;
         _balances[_msgSender()] = _balances[_msgSender()] + amount;
@@ -88,7 +88,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         emit Staked(_msgSender(), amount);
     }
 
-    function withdraw(uint256 amount) public override nonReentrant updateReward(_msgSender()) {
+    function withdraw(uint256 amount) public nonReentrant updateReward(_msgSender()) {
         require(amount > 0, "Cannot withdraw 0");
         _totalSupply = _totalSupply - amount;
         _balances[_msgSender()] = _balances[_msgSender()] - amount;
@@ -96,7 +96,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         emit Withdrawn(_msgSender(), amount);
     }
 
-    function getReward() public override nonReentrant updateReward(_msgSender()) {
+    function getReward() public nonReentrant updateReward(_msgSender()) {
         uint256 reward = rewards[_msgSender()];
         if (reward > 0) {
             rewards[_msgSender()] = 0;
@@ -105,7 +105,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         }
     }
 
-    function exit() external override {
+    function exit() external {
         withdraw(_balances[_msgSender()]);
         getReward();
     }
@@ -120,7 +120,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         _unpause();
     }
 
-    function notifyRewardAmount(uint256 reward) external override onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward / rewardsDuration;
         } else {
